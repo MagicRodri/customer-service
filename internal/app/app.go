@@ -65,6 +65,7 @@ func (a *App) CreateCustomer(ctx context.Context, email, name string) (domain.Cu
 			AggregateType: aggregateTypeCustomer,
 			AggregateID:   customer.ID,
 			EventType:     "CustomerCreated",
+			Channel:       channelFor("CustomerCreated"),
 			Payload:       newCustomerCreated(customer),
 		})
 	})
@@ -125,6 +126,7 @@ func (a *App) setStatus(ctx context.Context, id string, status domain.Status, re
 			AggregateType: aggregateTypeCustomer,
 			AggregateID:   customer.ID,
 			EventType:     eventType,
+			Channel:       channelFor(eventType),
 			Payload:       payload,
 		})
 	})
@@ -173,6 +175,7 @@ func (a *App) applyOrderSpend(ctx context.Context, eventID, topic, customerID st
 			AggregateType: aggregateTypeCustomer,
 			AggregateID:   customer.ID,
 			EventType:     "CustomerTierChanged",
+			Channel:       channelFor("CustomerTierChanged"),
 			Payload: customerTierChanged{
 				EventID:            uuid.NewString(),
 				EventType:          "CustomerTierChanged",

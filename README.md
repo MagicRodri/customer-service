@@ -14,17 +14,46 @@ outbox connector's job.
 This service is on both sides of both streams, and they are not
 interchangeable.
 
-**Technical events** are raw change-data-capture rows for the `customers`
-table, published by a Debezium Postgres connector to
-`tech.customer.public.customers`. Their shape is the physical table: a column
-rename changes the event. They are consumed here only to fill
-`technical_audit_log`. No business decision may depend on them.
+**Technical events** are raw change-data-capture rows, one topic per table,
+named `tech.customer.<schema>.<table>` — derived by the connector rather than
+listed, so a new table needs no configuration change. Their shape is the
+physical table: a column rename changes the event. They are consumed here only
+to fill `technical_audit_log`. No business decision may depend on them.
 
-**Business events** are explicit, versioned facts — `CustomerCreated`,
-`CustomerBlocked`, `CustomerUnblocked`, `CustomerTierChanged` — whose contracts
-live in [`schemas/`](schemas). They are written to the `outbox` table and routed
-by the Debezium outbox event router to `business.customer.events`. This is the
+**Business events** are explicit, versioned facts whose contracts live in
+[`schemas/`](schemas). They are written to the `outbox` table and routed by the
+Debezium outbox event router onto a topic chosen per event type. This is the
 only surface other services are allowed to couple to.
+
+| Event                 | Channel              | Topic                                |
+| --------------------- | -------------------- | ------------------------------------ |
+| `CustomerCreated`     | `customer.lifecycle` | `business.customer.lifecycle.events` |
+| `CustomerBlocked`     | `customer.lifecycle` | `business.customer.lifecycle.events` |
+| `CustomerUnblocked`   | `customer.lifecycle` | `business.customer.lifecycle.events` |
+| `CustomerTierChanged` | `customer.loyalty`   | `business.customer.loyalty.events`   |
+
+## Splitting events across topics
+
+Each outbox row carries a `channel`, and the connector rewrites the topic to
+`business.<channel>.events`. It routes on that column alone and never learns an
+event type, so the split lives here, in `internal/app/events.go`:
+
+```go
+func channelFor(eventType string) string {
+    switch eventType {
+    case "CustomerCreated", "CustomerBlocked", "CustomerUnblocked":
+        return channelCustomerLifecycle
+    case "CustomerTierChanged":
+        return channelCustomerLoyalty
+    default:
+        return aggregateTypeCustomer   // never empty
+    }
+}
+```
+
+Giving an event its own topic is a change to that function plus a redeploy — no
+connector edit. `AppendOutbox` falls back to the aggregate type when `Channel`
+is empty, so the simple case stays one topic per domain.
 
 ## Why the outbox
 
@@ -106,9 +135,21 @@ curl -X POST localhost:8091/customers \
 | `KAFKA_BROKERS`       | `localhost:9092`                |
 | `SCHEMA_REGISTRY_URL` | `http://localhost:8081`         |
 | `CONSUMER_GROUP`      | `customer-service`              |
-| `BUSINESS_TOPIC`      | `business.order.events`         |
-| `TECHNICAL_TOPIC`     | `tech.customer.public.customers`|
+| `BUSINESS_TOPIC_PATTERN`  | `^business\.order\..*`     |
+| `BUSINESS_TOPICS`     | *(unset — overrides the pattern)* |
+| `TECHNICAL_TOPIC_PATTERN` | `^tech\.customer\..*`      |
+| `TECHNICAL_TOPICS`    | *(unset — overrides the pattern)* |
 | `LOG_LEVEL`           | `info` (`debug` for verbose)    |
+
+### Subscribing by pattern
+
+Topic names are derived — one per captured table, one per outbox channel — so
+this service subscribes to a *family* rather than to names. The client
+re-resolves the pattern on every metadata refresh, so a topic created later is
+picked up without a restart.
+
+Set `BUSINESS_TOPICS` or `TECHNICAL_TOPICS` to a comma-separated list to pin an
+exact set instead; an explicit list always wins over the pattern.
 
 Migrations in [`migrations/`](migrations) are embedded in the binary and applied
 at startup.
