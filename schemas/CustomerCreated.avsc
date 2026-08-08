@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "CustomerCreated",
+  "namespace": "com.magicrodri.customer",
+  "doc": "Emitted when a customer account is opened. Payload of an outbox row with aggregate_type='customer'.",
+  "fields": [
+    { "name": "event_id", "type": "string", "doc": "UUID, unique per event. Consumers use it for idempotency." },
+    { "name": "event_type", "type": "string", "doc": "Always 'CustomerCreated'." },
+    { "name": "occurred_at", "type": "string", "doc": "RFC3339 UTC timestamp of the state change." },
+    { "name": "customer_id", "type": "string" },
+    { "name": "email", "type": "string" },
+    { "name": "name", "type": "string" },
+    { "name": "tier", "type": "string", "doc": "STANDARD | GOLD | PLATINUM" },
+    { "name": "status", "type": "string", "doc": "ACTIVE | BLOCKED" },
+    { "name": "discount_bps", "type": "int", "doc": "Discount granted by the tier, in basis points." }
+  ]
+}

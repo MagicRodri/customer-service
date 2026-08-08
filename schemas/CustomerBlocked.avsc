@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "CustomerBlocked",
+  "namespace": "com.magicrodri.customer",
+  "doc": "Emitted when a customer is barred from placing new orders.",
+  "fields": [
+    { "name": "event_id", "type": "string" },
+    { "name": "event_type", "type": "string", "doc": "Always 'CustomerBlocked'." },
+    { "name": "occurred_at", "type": "string" },
+    { "name": "customer_id", "type": "string" },
+    { "name": "reason", "type": "string", "default": "" }
+  ]
+}
