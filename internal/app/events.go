@@ -8,9 +8,34 @@ import (
 )
 
 // Outbox payloads. Field names and types mirror schemas/*.avsc; the outbox
-// connector expands this JSON into the Avro record published on
-// business.customer.events.
+// connector expands this JSON into the Avro record published on the channel's
+// topic.
 const aggregateTypeCustomer = "customer"
+
+// Channels split this domain's events across topics. The connector routes
+// purely on the channel column and knows nothing about event types, so carving
+// out a new topic is a change to this table alone — no connector edit, and no
+// interruption for consumers that subscribe by pattern.
+//
+// A consumer matching ^business\.customer\..* keeps receiving everything; one
+// that only cares about loyalty can subscribe to that single topic instead.
+const (
+	channelCustomerLifecycle = "customer.lifecycle" // → business.customer.lifecycle.events
+	channelCustomerLoyalty   = "customer.loyalty"   // → business.customer.loyalty.events
+)
+
+// channelFor maps an event type to its topic. An unrecognised type falls back
+// to the domain-wide channel rather than landing somewhere unroutable.
+func channelFor(eventType string) string {
+	switch eventType {
+	case "CustomerCreated", "CustomerBlocked", "CustomerUnblocked":
+		return channelCustomerLifecycle
+	case "CustomerTierChanged":
+		return channelCustomerLoyalty
+	default:
+		return aggregateTypeCustomer
+	}
+}
 
 type customerCreated struct {
 	EventID     string `json:"event_id"`
