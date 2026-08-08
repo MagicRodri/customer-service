@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "CustomerTierChanged",
+  "namespace": "com.magicrodri.customer",
+  "doc": "Emitted when accumulated spend moves a customer to a different tier. Produced by the OrderCreated handler, in the same transaction as the spend update.",
+  "fields": [
+    { "name": "event_id", "type": "string" },
+    { "name": "event_type", "type": "string", "doc": "Always 'CustomerTierChanged'." },
+    { "name": "occurred_at", "type": "string" },
+    { "name": "customer_id", "type": "string" },
+    { "name": "previous_tier", "type": "string" },
+    { "name": "tier", "type": "string" },
+    { "name": "discount_bps", "type": "int" },
+    { "name": "lifetime_spend_cents", "type": "long" }
+  ]
+}

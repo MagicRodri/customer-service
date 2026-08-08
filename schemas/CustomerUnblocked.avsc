@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "CustomerUnblocked",
+  "namespace": "com.magicrodri.customer",
+  "doc": "Emitted when a previously blocked customer is allowed to order again.",
+  "fields": [
+    { "name": "event_id", "type": "string" },
+    { "name": "event_type", "type": "string", "doc": "Always 'CustomerUnblocked'." },
+    { "name": "occurred_at", "type": "string" },
+    { "name": "customer_id", "type": "string" }
+  ]
+}
