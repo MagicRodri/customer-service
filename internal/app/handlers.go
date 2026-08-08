@@ -33,7 +33,8 @@ func (a *App) HandleBusinessEvent(ctx context.Context, msg eventing.Message) err
 	eventID := eventing.String(msg.Value, "event_id")
 	customerID := eventing.String(msg.Value, "customer_id")
 	if eventID == "" || customerID == "" {
-		return fmt.Errorf("malformed %s: event_id=%q customer_id=%q", eventType, eventID, customerID)
+		return fmt.Errorf("malformed %s: event_id=%q customer_id=%q; record actually carries %v",
+			eventType, eventID, customerID, eventing.FieldNames(msg.Value))
 	}
 
 	err := a.applyOrderSpend(ctx, eventID, msg.Topic, customerID, amount)
